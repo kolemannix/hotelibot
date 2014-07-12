@@ -13,7 +13,7 @@
                  [org.slf4j/slf4j-api "1.7.7"]
                  [org.slf4j/slf4j-log4j12 "1.7.7"]]
   :plugins [[lein-ring "0.8.10"]]
-  :ring {:handler hotelibot.handler/app}
+  :ring {:handler hotelibot.routes/app}
   :profiles
   {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
                         [ring/ring-jetty-adapter "1.3.0"]

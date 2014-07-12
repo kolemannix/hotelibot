@@ -9,6 +9,7 @@
             [hotelibot.bot :as bot]
             [hotelibot.routes :as routes]
             [hotelibot.slack-api :as slack]
+            [hotelibot.kart :as kart]
             [hotelibot.system-instance :as system-instance]
             ring.adapter.jetty))
 
@@ -23,11 +24,14 @@
                   {:port port
                    :join? false})]
       (log/info :STARTED "jetty" :port port :server server)
+      (prn :STARTED "jetty" :port port :server server)
+
       (assoc this :server server)))
   (stop [this]
     (log/info :STOPPING "jetty" :port port :server server :server (:server this))
     (.stop (:server this))
     (log/info :STOPPED "jetty" :port port)
+    (prn :STOPPED "jetty" :port port)
     this))
 
 (defn jetty-server
@@ -42,10 +46,11 @@
 
       :port        Web server port, default is 9900"
   [& {:keys [port]
-      :or {port 9900}
+      :or {port 3000}
       :as options}]
   (log/info "dev-system" :port port)
   (component/system-map :jetty (jetty-server port)
+                        :kart (kart/kart-bot)
                         :options (or options {})))
 
 ;;; Development system lifecycle
@@ -87,3 +92,14 @@
   []
   (stop)
   (refresh :after 'user/go))
+
+(defn inspect-game []
+  (deref (:game (:kart system-instance/system))))
+
+(defn inspect-kart []
+  (:kart system-instance/system))
+
+(defn reset-kart-component []
+  (component/stop (:kart system-instance/system))
+  (refresh)
+  (component/start (:kart system-instance/system)))

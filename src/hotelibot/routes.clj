@@ -2,6 +2,8 @@
   (:require [clojure.string :as str]
             [clojure.tools.logging :as log]
             [hotelibot.bot :as bot]
+            [hotelibot.kart :as kart]
+            [hotelibot.system-instance :as system-instance]
             [ring.middleware.params :refer [wrap-params]]
             [ring.middleware.keyword-params :refer [wrap-keyword-params]]
             [ring.middleware.json :refer [wrap-json-body wrap-json-response]]
@@ -33,6 +35,12 @@
   [request]
   {:body {:text (bot/handle (:params request) (linker request))}})
 
+(defn kart
+  "Handles a request for the hotelibot-kart endpoint. (TBD whether these should be the same endpoint)"
+  [request]
+  (when-let [response (kart/handle (:kart system-instance/system) request)]
+    {:body {:text response}}))
+
 (defn skype-call-redirect
   "Generate a redirect to a Skype link to start a call."
   [request]
@@ -48,6 +56,7 @@
   (log/trace "handler called" :request request)
   (let [h (case [(:request-method request) (:uri request)]
             [:post "/hotelibot"] hotelibot
+            [:post "/hotelibot-kart"] kart
             [:get "/skype"] skype-call-redirect
             four-oh-four)]
     (h request)))

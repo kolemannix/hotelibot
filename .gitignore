@@ -11,3 +11,4 @@ pom.xml.asc
 *~
 /logs
 /slack-api-token.txt
+/dev/control.clj
