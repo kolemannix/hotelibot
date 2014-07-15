@@ -15,15 +15,14 @@
 
 
 ;; Needs to depend on DB and Incoming web hook components
-(defrecord KartBot [game db push-service]
+(defrecord KartBot [game db]
   component/Lifecycle
   (start [this]
     (prn ";; Starting Kart Component")
     this)
   (stop [this]
     (prn ";; Stopping Kart Component")
-    (assoc this :game (atom nil))
-    ))
+    (assoc this :game (atom nil))))
 
 (defn kart-bot []
   (map->KartBot {:game (atom nil)}))
@@ -37,38 +36,47 @@
   (if (contains? accept-game-commands message)
     (let [new-game  (game/add-player-to-game game sender)]
       (if (= (count (:players game)) 3)
-        (game/begin-race game)
+        (game/begin-race new-game)
         new-game))
     game))
 
 (defn- in-progress-handler
   [game sender message]
-  (when (= "time?" message)
-    )
-  )
+  game)
+
+(defn- parse-user [message]
+  (clojure.string/join (rest (re-find #"@\w+" message))))
+
+(defn- awaiting-results-handler
+  [game sender message]
+  (if-let [winner (if (= "me" message)
+                    sender
+                    (parse-user message))]
+    (game/set-winner game winner)
+    game))
 
 (defn- completed-handler
   [game sender message]
-  )
+  game)
 
 (defn- idle-handler
   [game sender message]
   (when (contains? start-game-commands message)
-    (game/new-game)))
+    (game/new-game [sender])))
 
 (defn- handle* [kart sender message]
-  (let [handler (if-let [game @(:game kart)]
+  (let [handler (if-let [game (deref (:game kart))]
                   (case (:status game)
                     :seeking seeking-handler
                     :racing in-progress-handler
+                    :awaiting-results awaiting-results-handler
                     :completed completed-handler)
                   idle-handler)]
-    (game/to-message (swap! (:game kart) handler sender message))))
-
+    (let [game (swap! (:game kart) handler sender message)]
+      (game/to-message game))))
 
 (defn handle [kart request]
   (when-not (from-bot? request)
-    (let [{:keys [user_name text]} (:params request)
-          {:keys [_ message]}  (handle* kart user_name text)]
-      message)))
+    (let [{:keys [user_name text]} (:params request)]
+      (handle* kart user_name text))))
 

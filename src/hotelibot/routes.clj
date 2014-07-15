@@ -39,6 +39,7 @@
   "Handles a request for the hotelibot-kart endpoint. (TBD whether these should be the same endpoint)"
   [request]
   (when-let [response (kart/handle (:kart system-instance/system) request)]
+    (prn response)
     {:body {:text response}}))
 
 (defn skype-call-redirect

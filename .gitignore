@@ -11,4 +11,5 @@ pom.xml.asc
 *~
 /logs
 /slack-api-token.txt
+/incoming-webhook-url.txt
 /dev/control.clj

@@ -7,10 +7,6 @@
             [clojure.tools.logging :as log]
             [hotelibot.slack-api :as slack]))
 
-(def slack-api-token
-  (or (System/getProperty "SLACK_API_TOKEN")
-      (str/trim (slurp "slack-api-token.txt"))))
-
 (defn unknown-command-handler
   "Returns an error message indicating that the command was not recognized"
   [_ command args _]
@@ -26,7 +22,7 @@
   "Returns a link that will start a Skype call with the named users."
   [message command args linker]
   (let [message-users   (into #{} (parse-users args))
-        all-users       (slack/users-list slack-api-token)
+        all-users       (slack/users-list)
         user-map        (zipmap (map :id all-users) all-users)
         skype-handles   (zipmap message-users
                                 (map (fn [u]

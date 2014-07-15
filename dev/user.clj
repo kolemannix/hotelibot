@@ -6,8 +6,8 @@
             [clojure.tools.logging :as log]
             [clojure.tools.namespace.repl :refer (refresh)]
             [com.stuartsierra.component :as component]
-            [hotelibot.bot :as bot]
             [hotelibot.routes :as routes]
+            [hotelibot.bot :as bot]
             [hotelibot.slack-api :as slack]
             [hotelibot.kart :as kart]
             [hotelibot.system-instance :as system-instance]
@@ -18,19 +18,14 @@
 (defrecord JettyServer [app port server]
   component/Lifecycle
   (start [this]
-    (log/info :STARTING "jetty" :port port)
     (let [server (ring.adapter.jetty/run-jetty
                   app
                   {:port port
                    :join? false})]
-      (log/info :STARTED "jetty" :port port :server server)
       (prn :STARTED "jetty" :port port :server server)
-
       (assoc this :server server)))
   (stop [this]
-    (log/info :STOPPING "jetty" :port port :server server :server (:server this))
     (.stop (:server this))
-    (log/info :STOPPED "jetty" :port port)
     (prn :STOPPED "jetty" :port port)
     this))
 
@@ -44,7 +39,7 @@
   "Returns a complete system in :dev mode for development at the REPL.
   Options are key-value pairs from:
 
-      :port        Web server port, default is 9900"
+      :port        Web server port, default is 3000"
   [& {:keys [port]
       :or {port 3000}
       :as options}]
@@ -99,7 +94,5 @@
 (defn inspect-kart []
   (:kart system-instance/system))
 
-(defn reset-kart-component []
-  (component/stop (:kart system-instance/system))
-  (refresh)
-  (component/start (:kart system-instance/system)))
+(defn inspect-app []
+  (:app (:jetty system-instance/system)))

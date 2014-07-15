@@ -4,6 +4,7 @@
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/tools.logging "0.3.0"]
                  [org.clojure/tools.namespace "0.2.4"]
+                 [org.clojure/data.json "0.2.5"]
                  [com.stuartsierra/component "0.2.1"]
                  [clj-http "0.9.2"]
                  [com.google.guava/guava "16.0.1"]
