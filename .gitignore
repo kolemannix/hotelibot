@@ -13,3 +13,4 @@ pom.xml.asc
 /slack-api-token.txt
 /incoming-webhook-url.txt
 /dev/control.clj
+/uvahax-api-token.txt

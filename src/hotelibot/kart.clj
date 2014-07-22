@@ -2,6 +2,7 @@
   (:require [clojure.java.io :as io]
             [com.stuartsierra.component :as component]
             [hotelibot.system-instance :as system-instance]
+            [hotelibot.slack-api :as slack]
             [hotelibot.kart.game :as game]))
 
 ;; TODO: make these a bunch of REGEXES
@@ -30,41 +31,53 @@
 (defn- from-bot? [{{user :user_id} :params}]
   (= "USLACKBOT" user))
 
+(defn- handle-accept [game sender]
+  (let [new-game  (game/add-player-to-game game sender)]
+    (if (= (count (:players game)) 3)
+      (game/begin-race new-game)
+      new-game)))
+
 (defn- seeking-handler
   "Defines what actions the bot will take while seeking a game"
-  [game sender message]
-  (if (contains? accept-game-commands message)
-    (let [new-game  (game/add-player-to-game game sender)]
-      (if (= (count (:players game)) 3)
-        (game/begin-race new-game)
-        new-game))
-    game))
+  [game sender content]
+  (let [new-game (if (contains? accept-game-commands content)
+                   (handle-accept game sender)
+                   game)]
+    {:game new-game
+     :message (game/to-message new-game)}))
 
 (defn- in-progress-handler
-  [game sender message]
-  game)
+  [game sender content]
+  {:game game
+   :message (game/time-remaining game)})
 
 (defn- parse-user [message]
-  (clojure.string/join (rest (re-find #"@\w+" message))))
+  (slack/user-with-id (clojure.string/join (rest (re-find #"@\w+" message)))))
 
 (defn- awaiting-results-handler
-  [game sender message]
-  (if-let [winner (if (= "me" message)
-                    sender
-                    (parse-user message))]
-    (game/set-winner game winner)
-    game))
+  [game sender content]
+  (prn "content" content)
+  (let [new-game  (if-let [winner (if (= "me" content)
+                                    sender
+                                    (parse-user content))]
+                    (game/set-winner game winner)
+                    game)]
+    {:game new-game
+     :message (game/to-message new-game)}))
 
 (defn- completed-handler
-  [game sender message]
-  game)
+  [game sender content]
+  {:game game
+   :message (game/to-message game)})
 
 (defn- idle-handler
-  [game sender message]
-  (when (contains? start-game-commands message)
-    (game/new-game [sender])))
+  [game sender content]
+  (when (contains? start-game-commands content)
+    (let [new-game (game/new-game [sender])]
+      {:game new-game
+       :message (game/to-message new-game)})))
 
-(defn- handle* [kart sender message]
+(defn- handle* [kart sender content]
   (let [handler (if-let [game (deref (:game kart))]
                   (case (:status game)
                     :seeking seeking-handler
@@ -72,10 +85,12 @@
                     :awaiting-results awaiting-results-handler
                     :completed completed-handler)
                   idle-handler)]
-    (let [game (swap! (:game kart) handler sender message)]
-      (game/to-message game))))
+    (let [{:keys [game message]} (handler @(:game kart) sender content)]
+      (reset! (:game kart) game)
+      message)))
 
 (defn handle [kart request]
+  (prn (:params request))
   (when-not (from-bot? request)
     (let [{:keys [user_name text]} (:params request)]
       (handle* kart user_name text))))

@@ -6,12 +6,13 @@
   (:import [com.google.common.cache CacheBuilder CacheLoader]
            [com.google.common.util.concurrent ListenableFutureTask]))
 
-(def outgoing-webhook-token
+(def slack-api-token 
   (or (System/getProperty "SLACK_API_TOKEN")
-      (str/trim (slurp "slack-api-token.txt"))))
+      (str/trim (slurp "uvahax-api-token.txt"))))
 
 (def incoming-webhook-url
   (str/trim (slurp "incoming-webhook-url.txt")))
+
 
 (defn api-url
   "Returns the appropriate URL for the given method"
@@ -23,15 +24,19 @@
   result for up to ten minutes."
   []
   ;; TODO: Add caching
-  (let [resp (client/post (api-url "users.list" outgoing-webhook-token)
+  (let [resp (client/post (api-url "users.list" slack-api-token)
                           {:as :json})]
     (when-not (-> resp :body :ok)
       (throw (ex-info "Slack API call to users.list failed"
                       {:reason ::slack-api-call-failure
                        :response resp
-                       :token outgoing-webhook-token
+                       :token slack-api-token 
                        :method "users.list"})))
     (-> resp :body :members)))
+
+(defn user-with-id [id]
+  (let [users-by-id (into {} (map (juxt :id :name) (users-list)))]
+    (users-by-id id)))
 
 (defn push-message [& {:keys [username icon message]}]
   (client/post incoming-webhook-url {:body (json/write-str {:text message

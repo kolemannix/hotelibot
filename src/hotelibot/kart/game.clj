@@ -41,6 +41,9 @@
                (run [] (callback)))]
     (. (new Timer) (schedule task (long time)))))
 
+(defn time-remaining [game]
+  (str (/ (:time game) 60000) " minutes"))
+
 (defn finish-race [game]
   (slack/push-message :username "hotelibot" :icon ":kart8:" :message "Who won?")
   (update-game! (assoc game :status :awaiting-results)))
@@ -57,6 +60,9 @@
   (when game 
     (case status
       :seeking (format "Current Status: Seeking (%d/%d)\nPlayers: %s" (count players) 4 (str players))
-      :racing (format "Current Status: Racing (~%d minutes remaining)" time)
+      :racing (format "Current Status: Racing (~%s remaining)" (time-remaining game))
       :awaiting-results "Current Status: Awaiting Results" 
-      :completed (format "Current Status: Race Completed, Congratulations %s!" winner))))
+      :completed (format "Current Status: Race Completed, %s"
+                         (if winner
+                           (str "Congratulations " winner)
+                           "No winner specified")))))
